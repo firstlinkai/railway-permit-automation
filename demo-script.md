@@ -9,9 +9,9 @@
 
 ## Opening (30 seconds)
 
-"Hi [Name], thanks for taking the time. As someone with 10+ years in railway systems, I've seen firsthand how manual permit paperwork slows down maintenance teams and creates compliance risks.
+"Hi [Name], thanks for taking the time. As someone who understands railway systems, I've seen firsthand how manual permit paperwork slows down maintenance teams and creates compliance risks.
 
-Today I'll show you a digital permit system we built that cuts processing from 3 days to 3 hours. Let me walk you through how it works."
+Today I'll show you a digital permit system built specifically for railway operations that cuts processing from 3 days to 3 hours. Let me walk you through how it works."
 
 ---
 
@@ -140,22 +140,6 @@ Would you like to see how this would work specifically for your [mention their d
 
 ---
 
-## Handling Common Objections
-
-### "We're regulated - can't change processes"
-**Response:** "This is administrative digitization, not safety process change. The approval workflow stays identical - we're just automating the paperwork. Actually improves compliance through complete audit trails."
-
-### "Our IT department won't approve"
-**Response:** "Uses existing tools (Slack, Email, Airtable). No new software installation. Cloud-based with enterprise security. We can work with your IT on security review."
-
-### "We tried digital systems before"
-**Response:** "Most fail because they're too complex. This focuses on one high-impact process (permits) with simple, mobile-first design. Built by someone who actually understands railway operations."
-
-### "Cost seems high"
-**Response:** "At $2,500/month, it pays for itself in 2-3 months based on time savings alone. Plus eliminates compliance risks that could cost much more."
-
----
-
 ## Demo Preparation Checklist
 
 ### Technical Setup
@@ -187,5 +171,4 @@ Would you like to see how this would work specifically for your [mention their d
 
 ---
 
-*Demo script created by Suneel Pervez - Railway Systems Engineer turned Automation Specialist*
-*Leveraging 10+ years of railway operational experience*
+*Demo script for Railway Permit Automation system.*
