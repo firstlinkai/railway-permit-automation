@@ -1,0 +1,303 @@
+{
+  "name": "Railway Permit-to-Work Automation",
+  "nodes": [
+    {
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 300],
+      "parameters": {
+        "path": "railway-permit",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "railway-permit-webhook"
+    },
+    {
+      "name": "Parse Form Data",
+      "type": "n8n-nodes-base.set",
+      "position": [450, 300],
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "permitId",
+              "value": "={{$now.toFormat('yyyyMMddHHmmss')}}"
+            },
+            {
+              "name": "workerName",
+              "value": "={{$json.body.workerName}}"
+            },
+            {
+              "name": "workType",
+              "value": "={{$json.body.workType}}"
+            },
+            {
+              "name": "location",
+              "value": "={{$json.body.location}}"
+            },
+            {
+              "name": "duration",
+              "value": "={{$json.body.duration}}"
+            },
+            {
+              "name": "contractor",
+              "value": "={{$json.body.contractor}}"
+            },
+            {
+              "name": "hazards",
+              "value": "={{$json.body.hazards}}"
+            },
+            {
+              "name": "status",
+              "value": "pending_supervisor"
+            },
+            {
+              "name": "submittedAt",
+              "value": "={{$now}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Airtable Record",
+      "type": "n8n-nodes-base.airtable",
+      "position": [650, 300],
+      "parameters": {
+        "operation": "create",
+        "table": "Permits",
+        "fields": {
+          "values": {
+            "string": [
+              {
+                "name": "Permit ID",
+                "value": "={{$json.permitId}}"
+              },
+              {
+                "name": "Worker Name",
+                "value": "={{$json.workerName}}"
+              },
+              {
+                "name": "Work Type",
+                "value": "={{$json.workType}}"
+              },
+              {
+                "name": "Location",
+                "value": "={{$json.location}}"
+              },
+              {
+                "name": "Duration (hours)",
+                "value": "={{$json.duration}}"
+              },
+              {
+                "name": "Contractor",
+                "value": "={{$json.contractor}}"
+              },
+              {
+                "name": "Hazards Identified",
+                "value": "={{$json.hazards}}"
+              },
+              {
+                "name": "Status",
+                "value": "={{$json.status}}"
+              },
+              {
+                "name": "Submitted At",
+                "value": "={{$json.submittedAt}}"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "Route Based on Work Type",
+      "type": "n8n-nodes-base.if",
+      "position": [850, 300],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.workType}}",
+              "operation": "contains",
+              "value2": "high-risk"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Notify Supervisor",
+      "type": "n8n-nodes-base.slack",
+      "position": [1050, 200],
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "channel": "#permit-approvals",
+        "text": "={{`🚧 New Permit Request\n\n*Permit ID:* ${$json.permitId}\n*Worker:* ${$json.workerName}\n*Work Type:* ${$json.workType}\n*Location:* ${$json.location}\n*Duration:* ${$json.duration} hours\n\n[Approve](${process.env.APPROVE_URL}/${$json.permitId}/supervisor) | [Request Changes](${process.env.CHANGE_URL}/${$json.permitId})`}}",
+        "otherOptions": {
+          "username": "Permit System",
+          "icon_emoji": ":construction:"
+        }
+      }
+    },
+    {
+      "name": "Notify Safety Officer (High Risk)",
+      "type": "n8n-nodes-base.slack",
+      "position": [1050, 400],
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "channel": "#safety-approvals",
+        "text": "={{`⚠️ HIGH-RISK Permit Request\n\n*Permit ID:* ${$json.permitId}\n*Worker:* ${$json.workerName}\n*Work Type:* ${$json.workType}\n*Location:* ${$json.location}\n*Hazards:* ${$json.hazards}\n\n[Review Safety](${process.env.SAFETY_URL}/${$json.permitId})`}}",
+        "otherOptions": {
+          "username": "Safety System",
+          "icon_emoji": ":warning:"
+        }
+      }
+    },
+    {
+      "name": "Generate PDF Permit",
+      "type": "n8n-nodes-base.pdf",
+      "position": [1250, 300],
+      "parameters": {
+        "operation": "fromHtml",
+        "html": "={{`<!DOCTYPE html><html><head><style>body{font-family:Arial,sans-serif;padding:20px;}h1{color:#333;}.permit{border:2px solid #000;padding:20px;margin:20px 0;}.qr{text-align:center;margin:20px;}.footer{margin-top:40px;font-size:12px;color:#666;}</style></head><body><h1>Railway Permit to Work</h1><div class='permit'><p><strong>Permit ID:</strong> ${$json.permitId}</p><p><strong>Worker:</strong> ${$json.workerName}</p><p><strong>Work Type:</strong> ${$json.workType}</p><p><strong>Location:</strong> ${$json.location}</p><p><strong>Valid:</strong> ${$json.duration} hours from issue</p><p><strong>Contractor:</strong> ${$json.contractor}</p><div class='qr'>[QR_CODE_PLACEHOLDER]</div></div><div class='footer'>Issued by Railway Permit System • Scan QR for verification</div></body></html>`}}"
+      }
+    },
+    {
+      "name": "Send SMS to Worker",
+      "type": "n8n-nodes-base.twilio",
+      "position": [1450, 300],
+      "parameters": {
+        "operation": "sms",
+        "from": "={{$env.TWILIO_PHONE}}",
+        "to": "={{$json.body.workerPhone}}",
+        "message": "={{`Your railway permit (ID: ${$json.permitId}) has been approved. Present QR code at site. Download: ${process.env.PERMIT_URL}/${$json.permitId}`}}"
+      }
+    },
+    {
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [1650, 300],
+      "parameters": {
+        "responseBody": {
+          "string": [
+            {
+              "name": "success",
+              "value": "true"
+            },
+            {
+              "name": "permitId",
+              "value": "={{$json.permitId}}"
+            },
+            {
+              "name": "message",
+              "value": "Permit submitted successfully. You will receive SMS when approved."
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Form Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Form Data": {
+      "main": [
+        [
+          {
+            "node": "Create Airtable Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Airtable Record": {
+      "main": [
+        [
+          {
+            "node": "Route Based on Work Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Based on Work Type": {
+      "main": [
+        [
+          {
+            "node": "Notify Supervisor",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify Safety Officer (High Risk)",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Notify Supervisor": {
+      "main": [
+        [
+          {
+            "node": "Generate PDF Permit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Safety Officer (High Risk)": {
+      "main": [
+        [
+          {
+            "node": "Generate PDF Permit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate PDF Permit": {
+      "main": [
+        [
+          {
+            "node": "Send SMS to Worker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send SMS to Worker": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": {}
+}
